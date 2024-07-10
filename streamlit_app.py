@@ -80,12 +80,19 @@ if st.button('Predict'):
     if set(user_df.columns) != set(train_columns):
         st.error(f"Input data columns do not match training data columns. Expected columns: {', '.join(train_columns)}")
     else:
-        user_leaves = xgb_model.apply(user_df[train_columns])
-
-        # Ensure the shape of user_leaves is compatible with model prediction
-        if user_leaves.shape[1] != X_train.shape[1]:  # Ensure user_leaves has the same number of features as X_train
-            st.error(f"Input data shape mismatch. Expected {X_train.shape[1]} features, but got {user_leaves.shape[1]} features.")
+        # Ensure the shape of user_df is compatible with model prediction
+        if user_df.shape[1] != X_train.shape[1]:  # Ensure user_df has the same number of features as X_train
+            st.error(f"Input data shape mismatch. Expected {X_train.shape[1]} features, but got {user_df.shape[1]} features.")
         else:
+            # Preprocess user input as needed (encoding categorical variables, etc.)
+            for col in data.select_dtypes(include=[object]).columns:
+                if col in user_df.columns:
+                    le = le_dict[col]
+                    user_df[col] = user_df[col].fillna(data[col].mode()[0])  # Handle NaN with mode
+                    user_df[col] = le.transform(user_df[col])
+
+            # Predict using the trained model
+            user_leaves = xgb_model.apply(user_df[train_columns])
             user_pred = xgb_model.predict(user_leaves)
             result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
             st.success(f'Prediction: {result}')
