@@ -7,17 +7,26 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 import xgboost as xgb
 
+# Title and introduction
 st.title('Nephrology Prognostication Web App')
+st.markdown('Upload or select data for kidney disease prediction.')
 
 # Load the dataset directly (assuming 'kidney_disease.csv' is in the same directory)
-data1 = pd.read_csv('kidney_disease.csv')
-data = data1.copy()
+@st.cache
+def load_data():
+    data1 = pd.read_csv('kidney_disease.csv')
+    data = data1.copy()
+    
+    # Drop 'id' column if it exists
+    if 'id' in data.columns:
+        data = data.drop(columns=['id'])
+        
+    return data
 
-# Drop 'id' column if it exists
-if 'id' in data.columns:
-    data = data.drop(columns=['id'])
+data = load_data()
 
 # Function to train models
+@st.cache(allow_output_mutation=True)
 def train_models(data):
     numerical_cols = data.select_dtypes(include=[np.number]).columns
     categorical_cols = data.select_dtypes(include=[object]).columns
@@ -54,13 +63,12 @@ def train_models(data):
 
     return xgb_model, svm_model, encoder, le
 
-# Train the models
 xgb_model, svm_model, encoder, le = train_models(data)
 
+# User input section
 st.header('Predict Kidney Disease')
 st.write('Enter the details for prediction:')
 
-# User input form
 user_input = {}
 for col in data.drop('classification', axis=1).columns:
     if col in data.select_dtypes(include=[np.number]).columns:
@@ -74,12 +82,18 @@ user_df = pd.DataFrame([user_input])
 for col in data.select_dtypes(include=[object]).columns:
     user_df[col] = le.transform(user_df[col])
 
-user_leaves = xgb_model.apply(user_df)
-user_leaves_encoded = encoder.transform(user_leaves)
+# Predict button and result
+if st.button('Predict'):
+    user_leaves = xgb_model.apply(user_df)
+    user_leaves_encoded = encoder.transform(user_leaves)
 
-user_pred = svm_model.predict(user_leaves_encoded)[0]
-user_proba = svm_model.predict_proba(user_leaves_encoded)[0]
+    user_pred = svm_model.predict(user_leaves_encoded)[0]
+    user_proba = svm_model.predict_proba(user_leaves_encoded)[0]
 
-result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
-st.success(f'Prediction: {result}')
-st.write(f'Confidence: {user_proba[user_pred]:.2f}')
+    result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
+    st.success(f'Prediction: {result}')
+    st.write(f'Confidence: {user_proba[user_pred]:.2f}')
+
+# Images section
+st.markdown('### Kidney Disease Images for Reference')
+st.image('kidney_image.jpg', caption='Healthy and diseased kidneys comparison', use_column_width=True)
