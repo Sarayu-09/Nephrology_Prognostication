@@ -50,9 +50,9 @@ def train_models(data):
     xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
     xgb_model.fit(X_train, y_train)
 
-    return xgb_model, le_dict, X_train.columns
+    return xgb_model, le_dict, X_train.columns, X_train
 
-xgb_model, le_dict, train_columns = train_models(data)
+xgb_model, le_dict, train_columns, X_train = train_models(data)
 
 # User input section
 st.header('Predict Kidney Disease')
@@ -83,7 +83,7 @@ if st.button('Predict'):
         user_leaves = xgb_model.apply(user_df[train_columns])
 
         # Ensure the shape of user_leaves is compatible with model prediction
-        if user_leaves.shape[1] != X_train.shape[1]:  # Adjust X_train shape as per your original model training data
+        if user_leaves.shape[1] != X_train.shape[1]:  # Ensure user_leaves has the same number of features as X_train
             st.error(f"Input data shape mismatch. Expected {X_train.shape[1]} features, but got {user_leaves.shape[1]} features.")
         else:
             user_pred = xgb_model.predict(user_leaves)
