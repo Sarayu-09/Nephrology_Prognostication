@@ -6,8 +6,6 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 import xgboost as xgb
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 st.title('Nephrology Prognostication Web App')
 
@@ -18,21 +16,6 @@ data = data1.copy()
 # Drop 'id' column if it exists
 if 'id' in data.columns:
     data = data.drop(columns=['id'])
-
-st.write("Data preview:")
-st.write(data.head())
-
-st.write("Missing values:")
-st.write(data.isnull().sum())
-
-st.write("Distribution of target variable:")
-fig, ax = plt.subplots()
-sns.countplot(x='classification', data=data, ax=ax)
-st.pyplot(fig)
-
-st.write("Pairplot for visualization:")
-fig = sns.pairplot(data, hue='classification')
-st.pyplot(fig)
 
 # Function to train models
 def train_models(data):
@@ -69,35 +52,22 @@ def train_models(data):
     svm_model = SVC(kernel='rbf', probability=True)
     svm_model.fit(X_train_leaves_encoded, y_train)
 
-    svm_preds = svm_model.predict(X_test_leaves_encoded)
-    svm_acc = accuracy_score(y_test, svm_preds)
-
-    return xgb_model, svm_model, encoder, le, xgb_acc, svm_acc
+    return xgb_model, svm_model, encoder, le
 
 # Train the models
-xgb_model, svm_model, encoder, le, xgb_acc, svm_acc = train_models(data)
-
-st.write(f'XGBoost Accuracy: {xgb_acc}')
-st.write(f'SVM Accuracy: {svm_acc}')
-
-st.write('Classification Report for XGBoost:')
-st.text(classification_report(data['classification'], xgb_model.predict(data.drop('classification', axis=1))))
-
-st.write('Classification Report for SVM with XGBoost features:')
-X_leaves = xgb_model.apply(data.drop('classification', axis=1))
-X_leaves_encoded = encoder.transform(X_leaves)
-st.text(classification_report(data['classification'], svm_model.predict(X_leaves_encoded)))
+xgb_model, svm_model, encoder, le = train_models(data)
 
 st.header('Predict Kidney Disease')
 st.write('Enter the details for prediction:')
 
+# User input form
 user_input = {}
 for col in data.drop('classification', axis=1).columns:
     if col in data.select_dtypes(include=[np.number]).columns:
-        user_input[col] = st.number_input(f'Enter {col}:', min_value=float(data[col].min()), max_value=float(data[col].max()), value=float(data[col].median()))
+        user_input[col] = st.number_input(f'{col.capitalize()}:', min_value=float(data[col].min()), max_value=float(data[col].max()), value=float(data[col].median()))
     else:
         unique_values = data[col].unique()
-        user_input[col] = st.selectbox(f'Select {col}:', options=unique_values)
+        user_input[col] = st.selectbox(f'{col.capitalize()}:', options=unique_values)
 
 user_df = pd.DataFrame([user_input])
 
@@ -111,5 +81,5 @@ user_pred = svm_model.predict(user_leaves_encoded)[0]
 user_proba = svm_model.predict_proba(user_leaves_encoded)[0]
 
 result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
-st.write(f'Prediction: {result}')
+st.success(f'Prediction: {result}')
 st.write(f'Confidence: {user_proba[user_pred]:.2f}')
