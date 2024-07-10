@@ -74,7 +74,8 @@ if st.button('Predict'):
         if col in user_df.columns:
             le = le_dict[col]
             user_df[col] = user_df[col].fillna(data[col].mode()[0])  # Handle NaN with mode
-            user_df[col] = le.transform(user_df[col])
+            # Transform using the same LabelEncoder used during training
+            user_df[col] = user_df[col].apply(lambda x: x if x in le.classes_ else le.classes_[0])
 
     # Ensure user input matches the expected features used during training
     if set(user_df.columns) != set(train_columns):
