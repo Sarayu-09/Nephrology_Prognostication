@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score
 import xgboost as xgb
 
 # Title and introduction
@@ -36,9 +36,11 @@ def train_models(data):
     for col in categorical_cols:
         data[col].fillna(data[col].mode()[0], inplace=True)
 
-    le = LabelEncoder()
+    le_dict = {}
     for col in categorical_cols:
+        le = LabelEncoder()
         data[col] = le.fit_transform(data[col])
+        le_dict[col] = le
 
     X = data.drop('classification', axis=1)
     y = data['classification']
@@ -48,22 +50,9 @@ def train_models(data):
     xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
     xgb_model.fit(X_train, y_train)
 
-    xgb_preds = xgb_model.predict(X_test)
-    xgb_acc = accuracy_score(y_test, xgb_preds)
+    return xgb_model, le_dict
 
-    X_train_leaves = xgb_model.apply(X_train)
-    X_test_leaves = xgb_model.apply(X_test)
-
-    encoder = OneHotEncoder()
-    X_train_leaves_encoded = encoder.fit_transform(X_train_leaves)
-    X_test_leaves_encoded = encoder.transform(X_test_leaves)
-
-    svm_model = SVC(kernel='rbf', probability=True)
-    svm_model.fit(X_train_leaves_encoded, y_train)
-
-    return xgb_model, svm_model, encoder, le
-
-xgb_model, svm_model, encoder, le = train_models(data)
+xgb_model, le_dict = train_models(data)
 
 # User input section
 st.header('Predict Kidney Disease')
@@ -79,21 +68,20 @@ for col in data.drop('classification', axis=1).columns:
 
 user_df = pd.DataFrame([user_input])
 
-for col in data.select_dtypes(include=[object]).columns:
-    user_df[col] = le.transform(user_df[col])
-
 # Predict button and result
 if st.button('Predict'):
-    user_leaves = xgb_model.apply(user_df)
-    user_leaves_encoded = encoder.transform(user_leaves)
+    for col in data.select_dtypes(include=[object]).columns:
+        if col in user_df.columns:
+            le = le_dict[col]
+            try:
+                user_df[col] = le.transform(user_df[col])
+            except ValueError:
+                # Handle unseen labels by setting them to a default value or ignoring them
+                st.error(f"Unseen label encountered for {col}. Please choose a valid option.")
+                st.stop()
 
-    user_pred = svm_model.predict(user_leaves_encoded)[0]
-    user_proba = svm_model.predict_proba(user_leaves_encoded)[0]
+    user_leaves = xgb_model.apply(user_df)
+    user_pred = xgb_model.predict(user_leaves)[0]
 
     result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
     st.success(f'Prediction: {result}')
-    st.write(f'Confidence: {user_proba[user_pred]:.2f}')
-
-# Images section
-st.markdown('### Kidney Disease Images for Reference')
-st.image('kidney_image.jpg', caption='Healthy and diseased kidneys comparison', use_column_width=True)
