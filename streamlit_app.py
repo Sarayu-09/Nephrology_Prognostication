@@ -77,7 +77,11 @@ if st.button('Predict'):
             user_df[col] = le.transform(user_df[col])
 
     user_leaves = xgb_model.apply(user_df)
-    user_pred = xgb_model.predict(user_leaves)[0]
-
-    result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
-    st.success(f'Prediction: {result}')
+    
+    # Ensure the shape of user_leaves is compatible with model prediction
+    if user_leaves.shape[1] != X_train.shape[1]:  # Adjust X_train shape as per your original model training data
+        st.error(f"Input data shape mismatch. Expected {X_train.shape[1]} features, but got {user_leaves.shape[1]} features.")
+    else:
+        user_pred = xgb_model.predict(user_leaves)
+        result = "Positive for Kidney Disease" if user_pred == 1 else "Negative for Kidney Disease"
+        st.success(f'Prediction: {result}')
