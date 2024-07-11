@@ -61,8 +61,7 @@ st.sidebar.header('User Input Features')
 def user_input_features():
     input_data = {}
     for col in data.columns[:-1]:  # Exclude target column
-        if col != 'id':  # Remove id from the input fields
-            input_data[col] = st.sidebar.number_input(col, min_value=0.0, step=0.1)
+        input_data[col] = st.sidebar.number_input(col, min_value=0.0, step=0.1)
     return pd.DataFrame(input_data, index=[0])
 
 input_df = user_input_features()
