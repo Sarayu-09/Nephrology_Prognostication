@@ -82,7 +82,7 @@ if st.button('Predict'):
     
     # Display prediction
     st.subheader('Prediction')
-    st.write('Disease' if prediction[0] == 1 else 'No Disease')
+    st.write('Disease' if prediction[0] == 2 else 'No Disease')
     st.write(f'Prediction Probability: {prediction_proba[0]:.2f}')
 
 st.write('Note: This is a simplified example. In a real-world application, you should handle missing values, feature scaling, and other preprocessing steps more carefully.')
