@@ -29,6 +29,7 @@ def preprocess_data(data):
 
 def train_model(data):
     X = data.drop('classification', axis=1)
+    X=data.drop('ID',axis=1)
     y = data['classification']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
@@ -61,7 +62,8 @@ st.sidebar.header('User Input Features')
 def user_input_features():
     input_data = {}
     for col in data.columns[:-1]:  # Exclude target column
-        input_data[col] = st.sidebar.number_input(col, min_value=0.0, step=0.1)
+        if col != 'id':  # Remove id from the input fields
+            input_data[col] = st.sidebar.number_input(col, min_value=0.0, step=0.1)
     return pd.DataFrame(input_data, index=[0])
 
 input_df = user_input_features()
