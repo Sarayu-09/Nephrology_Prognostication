@@ -54,7 +54,7 @@ data = load_data()
 data = preprocess_data(data)
 xgb_model, svm_model, encoder = train_model(data)
 
-st.title('Medical Report Disease Prediction')
+st.title('Nephrology Disease Prediction')
 
 # Input form for user medical report
 st.sidebar.header('User Input Features')
